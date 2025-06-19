@@ -9,7 +9,7 @@ import sys
 # L'URL da cui scaricare il file ZIP dell'aggiornamento.
 # Dovrai ospitare i tuoi aggiornamenti da qualche parte (es. GitHub Releases, un tuo server)
 # e mettere qui il link diretto al file ZIP.
-UPDATE_ZIP_URL = "https://github.com/JackoPeru/Misure-mq/archive/refs/tags/v1.zip" # <--- MODIFICA QUESTO
+UPDATE_ZIP_URL = "https://github.com/JackoPeru/Misure-mq.zip" # <--- MODIFICA QUESTO
 
 # Nome del file ZIP scaricato
 DOWNLOADED_ZIP_FILE = "Misure-mq.zip"
