@@ -3,7 +3,7 @@ from tkinter import ttk, messagebox
 import database
 
 class EdgeEditorDialog(tk.Toplevel):
-    def __init__(self, parent, row_id, material_name, thickness, length1_cm, length2_cm, current_edge_details):
+    def __init__(self, parent, row_id, material_name, thickness, length1_cm, length2_cm, current_edge_details, num_soglie=1):
         super().__init__(parent)
         self.parent = parent
         self.row_id = row_id
@@ -12,8 +12,9 @@ class EdgeEditorDialog(tk.Toplevel):
         self.length1_cm = float(length1_cm) # Fronte/Retro
         self.length2_cm = float(length2_cm) # Sinistra/Destra
         self.current_edge_details = current_edge_details
+        self.num_soglie = int(num_soglie)  # Numero di soglie per moltiplicare il costo
 
-        self.title(f"Editor Bordi - {material_name} ({thickness}cm)")
+        self.title(f"Editor Bordi - {material_name} ({thickness}cm) - {self.num_soglie} soglie")
         self.geometry("600x450")
         self.resizable(False, False)
         self.transient(parent)
@@ -178,8 +179,9 @@ class EdgeEditorDialog(tk.Toplevel):
         summary_frame.grid(row=row_idx, column=0, columnspan=3, sticky="ew", pady=(10,5))
         row_idx +=1
 
-        ttk.Label(summary_frame, text="Costo Totale Bordi (€):").grid(row=0, column=0, padx=5, pady=5, sticky="w")
-        ttk.Label(summary_frame, textvariable=self.total_edge_cost_var, font=("Helvetica", 10, "bold")).grid(row=0, column=1, padx=5, pady=5, sticky="e")
+        ttk.Label(summary_frame, text=f"Numero Soglie: {self.num_soglie}").grid(row=0, column=0, padx=5, pady=2, sticky="w")
+        ttk.Label(summary_frame, text="Costo Totale Bordi (€):").grid(row=1, column=0, padx=5, pady=5, sticky="w")
+        ttk.Label(summary_frame, textvariable=self.total_edge_cost_var, font=("Helvetica", 10, "bold")).grid(row=1, column=1, padx=5, pady=5, sticky="e")
         summary_frame.columnconfigure(1, weight=1)
 
         button_frame = ttk.Frame(main_frame)
@@ -254,7 +256,9 @@ class EdgeEditorDialog(tk.Toplevel):
         elif side_key in ['left', 'right']:
             length_m = self.length2_cm / 100.0
         
-        cost = length_m * price_lm
+        # Moltiplica il costo per il numero di soglie
+        cost = length_m * price_lm * self.num_soglie
+        print(f"[DEBUG] _calculate_side_cost: Costo calcolato per {side_key}: lunghezza={length_m:.3f}m, prezzo={price_lm:.2f}€/m, soglie={self.num_soglie}, costo_totale={cost:.2f}€")
         self.selected_edges[side_key]['cost_var'].set(f"{cost:.2f}")
         return cost
 
@@ -350,7 +354,7 @@ if __name__ == '__main__':
     database.get_edge_types_by_material_thickness = mock_get_edges
     database.get_distinct_edge_types = lambda: [('Filo Lucido',), ('Costa Retta',), ('Toro',)]
 
-    dialog = EdgeEditorDialog(mock_parent, mock_row_id, mock_material, mock_thickness, mock_len1, mock_len2, mock_current_edges)
+    dialog = EdgeEditorDialog(mock_parent, mock_row_id, mock_material, mock_thickness, mock_len1, mock_len2, mock_current_edges, 13)
     root.wait_window(dialog)
     print("Dialog closed.")
     print("Updated edge details in MockApp:", mock_parent.edge_details_map.get(mock_row_id))

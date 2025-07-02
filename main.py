@@ -447,6 +447,7 @@ class App(tk.Tk):
             thickness_str = item_values[4]
             length_cm = float(item_values[1])
             width_cm = float(item_values[2])
+            num_soglie = int(item_values[0])  # Numero di soglie dalla prima colonna
             # L'ID della riga è l'IID stesso dell'elemento nel Treeview, che abbiamo in item_to_edit_iid
             # row_id_from_values = item_values[10] # Questo è ridondante se usiamo item_to_edit_iid
 
@@ -480,7 +481,7 @@ class App(tk.Tk):
             messagebox.showerror("Errore Dati Riga", f"Impossibile leggere i dati dalla riga: {e}", parent=self)
             return
 
-        dialog = EdgeEditorDialog(self, item_to_edit_iid, material_name, thickness, length_cm, width_cm, current_edge_details)
+        dialog = EdgeEditorDialog(self, item_to_edit_iid, material_name, thickness, length_cm, width_cm, current_edge_details, num_soglie)
         self.wait_window(dialog)
         # L'aggiornamento della tabella e del sommario viene fatto da EdgeEditorDialog al salvataggio
 
