@@ -1,0 +1,29 @@
+# Python cache files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# PyInstaller build files
+build/
+dist/
+*.spec
+
+# Virtual environment
+.venv/
+venv/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backup folders
+backup_*/
+
+# Database backups
+*.db.bak
+*.sqlite.bak
