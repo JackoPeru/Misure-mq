@@ -10,6 +10,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import json
 import database
+from datetime import datetime
 
 def export_to_excel(quote_data, summary_data):
     """Esporta i dati del preventivo e il riepilogo in un file Excel."""
@@ -371,3 +372,117 @@ def export_quote_to_pdf(filename, quote_data, totals, edge_details_for_pdf, clie
     # Genera il PDF
     doc.build(elements)
     messagebox.showinfo("Esportazione PDF", f"Preventivo esportato con successo in {filename}")
+
+
+def export_materials_and_edges_to_json(filename):
+    """Esporta tutti i materiali e tipi di bordo in un file JSON per backup/trasferimento."""
+    try:
+        # Recupera tutti i materiali
+        materials = database.get_all_materials()
+        materials_data = []
+        for material in materials:
+            materials_data.append({
+                'name': material['name'],
+                'thickness': material['thickness'],
+                'price_per_sqm': material['price_per_sqm'],
+                'description': material['description'],
+                'supplier': material['supplier']
+            })
+        
+        # Recupera tutti i tipi di bordo
+        edges = database.get_all_edge_types()
+        edges_data = []
+        for edge in edges:
+            edges_data.append({
+                'material_name': edge['material_name'],
+                'thickness': edge['thickness'],
+                'edge_type': edge['edge_type'],
+                'price_per_lm': edge['price_per_lm']
+            })
+        
+        # Crea il dizionario da esportare
+        export_data = {
+            'export_date': json.dumps(datetime.now().isoformat()),
+            'materials': materials_data,
+            'edges': edges_data
+        }
+        
+        # Salva nel file JSON
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(export_data, f, indent=4, ensure_ascii=False)
+        
+        messagebox.showinfo("Esportazione Completata", 
+                          f"Esportati {len(materials_data)} materiali e {len(edges_data)} tipi di bordo in {filename}")
+        return True
+        
+    except Exception as e:
+        messagebox.showerror("Errore Esportazione", f"Errore durante l'esportazione: {e}")
+        return False
+
+
+def import_materials_and_edges_from_json(filename, overwrite_existing=False):
+    """Importa materiali e tipi di bordo da un file JSON di backup."""
+    try:
+        with open(filename, 'r', encoding='utf-8') as f:
+            import_data = json.load(f)
+        
+        if 'materials' not in import_data and 'edges' not in import_data:
+            messagebox.showerror("Errore Importazione", "File JSON non valido: mancano le sezioni 'materials' o 'edges'")
+            return False
+        
+        imported_materials = 0
+        skipped_materials = 0
+        imported_edges = 0
+        skipped_edges = 0
+        
+        # Importa materiali
+        if 'materials' in import_data:
+            for material_data in import_data['materials']:
+                try:
+                    result = database.add_material(
+                        name=material_data['name'],
+                        price_per_sqm=material_data['price_per_sqm'],
+                        thickness=material_data.get('thickness'),
+                        description=material_data.get('description', ''),
+                        supplier=material_data.get('supplier')
+                    )
+                    if result:
+                        imported_materials += 1
+                    else:
+                        skipped_materials += 1
+                except Exception as e:
+                    print(f"Errore importazione materiale {material_data.get('name', 'sconosciuto')}: {e}")
+                    skipped_materials += 1
+        
+        # Importa tipi di bordo
+        if 'edges' in import_data:
+            for edge_data in import_data['edges']:
+                try:
+                    result = database.add_edge_type(
+                        edge_type=edge_data['edge_type'],
+                        price_per_lm=edge_data['price_per_lm'],
+                        material_name=edge_data.get('material_name'),
+                        thickness=edge_data.get('thickness')
+                    )
+                    if result:
+                        imported_edges += 1
+                    else:
+                        skipped_edges += 1
+                except Exception as e:
+                    print(f"Errore importazione bordo {edge_data.get('edge_type', 'sconosciuto')}: {e}")
+                    skipped_edges += 1
+        
+        messagebox.showinfo("Importazione Completata", 
+                          f"Importati: {imported_materials} materiali, {imported_edges} tipi di bordo\n"
+                          f"Saltati (duplicati/errori): {skipped_materials} materiali, {skipped_edges} tipi di bordo")
+        return True
+        
+    except FileNotFoundError:
+        messagebox.showerror("Errore Importazione", "File non trovato")
+        return False
+    except json.JSONDecodeError:
+        messagebox.showerror("Errore Importazione", "File JSON non valido")
+        return False
+    except Exception as e:
+        messagebox.showerror("Errore Importazione", f"Errore durante l'importazione: {e}")
+        return False

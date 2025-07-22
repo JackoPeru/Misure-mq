@@ -5,6 +5,8 @@ from materials_manager import MaterialsManager
 from edges_manager import EdgesManager # Importa EdgesManager
 import utils # Import the utils module
 from edge_editor_dialog import EdgeEditorDialog # Importa la nuova finestra di dialogo
+from linear_elements_manager import LinearElementsManager # Importa il gestore elementi lineari
+from linear_quote_dialog import LinearQuoteDialog # Importa la finestra per elementi lineari nei preventivi
 
 class App(tk.Tk):
     def __init__(self):
@@ -40,8 +42,12 @@ class App(tk.Tk):
         menubar.add_cascade(label="Gestione", menu=gestione_menu)
         gestione_menu.add_command(label="Materiali...", command=self.open_materials_manager)
         gestione_menu.add_command(label="Tipi di Bordo...", command=self.open_edges_manager) # Aggiungi menu per bordi
+        gestione_menu.add_command(label="Elementi Lineari...", command=self.open_linear_elements_manager) # Aggiungi menu per elementi lineari
         # Updated command to call the new import function
         gestione_menu.add_command(label="Importa Materiali da Excel...", command=self.import_materials_from_excel_dialog)
+        gestione_menu.add_separator()
+        gestione_menu.add_command(label="Esporta Dati (Materiali e Bordi)...", command=self.export_materials_and_edges)
+        gestione_menu.add_command(label="Importa Dati (Materiali e Bordi)...", command=self.import_materials_and_edges)
         print("App._create_menu: Fine")
 
     def _create_ui(self):
@@ -133,6 +139,9 @@ class App(tk.Tk):
         self.add_row_button = ttk.Button(quote_buttons_frame, text="➕ Aggiungi Riga", command=self.add_quote_row, style="Accent.TButton")
         self.add_row_button.pack(side="left", padx=5)
 
+        self.add_linear_button = ttk.Button(quote_buttons_frame, text="📏 Aggiungi Elemento Lineare", command=self.add_linear_element)
+        self.add_linear_button.pack(side="left", padx=5)
+
         self.delete_row_button = ttk.Button(quote_buttons_frame, text="➖ Elimina Riga", command=self.delete_quote_row)
         self.delete_row_button.pack(side="left", padx=5)
 
@@ -209,17 +218,11 @@ class App(tk.Tk):
 
     def open_edges_manager(self):
         """Apre la finestra di gestione dei tipi di bordo."""
-        edges_manager_window = EdgesManager(self)
-        edges_manager_window.wait_window() # Aspetta che la finestra sia chiusa
-        # Qui potresti voler ricaricare i dati dei bordi se qualche altra parte dell'UI dipende da essi
-        # Ad esempio, se l'EdgeEditorDialog è aperto, potrebbe aver bisogno di un refresh.
-        # Per ora, non facciamo nulla al ritorno, ma è un punto da considerare.
-        # Se l'EdgeEditorDialog ricarica i tipi di bordo ogni volta che si apre, non serve altro qui.
+        EdgesManager(self)
 
-        self.wait_window(edges_manager_window)
-    # I tipi di bordo vengono ricaricati da EdgeEditorDialog se necessario, o qui se la logica cambia.
-    # Per ora, EdgeEditorDialog gestisce il proprio caricamento.
-    # Se la finestra EdgesManager modifica i dati, EdgeEditorDialog dovrebbe ricaricarli alla prossima apertura.
+    def open_linear_elements_manager(self):
+        """Apre la finestra di gestione degli elementi lineari."""
+        LinearElementsManager(self)
 
     def add_quote_row(self):
         # Validation
@@ -485,6 +488,14 @@ class App(tk.Tk):
         self.wait_window(dialog)
         # L'aggiornamento della tabella e del sommario viene fatto da EdgeEditorDialog al salvataggio
 
+    def add_linear_element(self):
+        """Apre la finestra per aggiungere un elemento lineare al preventivo."""
+        dialog = LinearQuoteDialog(self)
+        self.wait_window(dialog)
+        # Se l'elemento è stato aggiunto, aggiorna il sommario
+        if hasattr(dialog, 'element_added') and dialog.element_added:
+            self.update_summary()
+
     def import_materials_from_excel_dialog(self):
         try:
             from tkinter import filedialog # Ensure filedialog is available
@@ -526,6 +537,40 @@ class App(tk.Tk):
         finally:
             if progress_win.winfo_exists(): # Check if window still exists before trying to destroy
                  progress_win.destroy() # Ensure progress window is closed
+
+    def export_materials_and_edges(self):
+        """Esporta tutti i materiali e tipi di bordo in un file JSON."""
+        try:
+            from tkinter import filedialog
+        except ImportError:
+            pass
+        
+        filepath = filedialog.asksaveasfilename(
+            defaultextension=".json",
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+            title="Esporta Dati Materiali e Bordi",
+            parent=self
+        )
+        if filepath:
+            utils.export_materials_and_edges_to_json(filepath)
+
+    def import_materials_and_edges(self):
+        """Importa materiali e tipi di bordo da un file JSON."""
+        try:
+            from tkinter import filedialog
+        except ImportError:
+            pass
+        
+        filepath = filedialog.askopenfilename(
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+            title="Importa Dati Materiali e Bordi",
+            parent=self
+        )
+        if filepath:
+            success = utils.import_materials_and_edges_from_json(filepath)
+            if success:
+                # Ricarica i materiali nel combobox dopo l'importazione
+                self._load_materials_to_combobox()
 
 if __name__ == "__main__":
     print("Avvio dell'applicazione...")
