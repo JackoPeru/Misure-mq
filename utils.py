@@ -6,6 +6,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
+from reportlab.lib.units import cm
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import json
@@ -25,21 +26,29 @@ def export_to_pdf(quote_items, totals, filename):
     story.append(Paragraph("Preventivo Soglie", styles['h1']))
     story.append(Spacer(1, 12))
 
-    # Dati tabella
-    data = [["N.", "L (cm)", "W (cm)", "Materiale", "Spess. (cm)", "m²", "€/m²", "Importo (€)"]]
-    for item in quote_items:
-        data.append(item)
+    # Dati tabella con intestazioni corrette (escludendo l'ID)
+    data = [["N.", "L (cm)", "W (cm)", "Materiale", "Spess. (cm)", "m²", "€/m²", "Lastra (€)", "Bordi (€)", "Tot. Riga (€)"]]
     
-    # Creazione tabella
-    table = Table(data)
+    for item in quote_items:
+        # Prendi solo i primi 10 valori (escludendo l'ID che è l'ultimo)
+        row_data = list(item[:10])
+        data.append(row_data)
+    
+    # Creazione tabella con larghezze colonne ottimizzate
+    table = Table(data, colWidths=[0.8*cm, 1.8*cm, 1.8*cm, 3.5*cm, 1.5*cm, 1.5*cm, 1.5*cm, 1.8*cm, 1.8*cm, 2*cm])
     style = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 9),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
         ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0,0), (-1,-1), 1, colors.black)
+        ('GRID', (0,0), (-1,-1), 1, colors.black),
+        ('FONTSIZE', (0, 1), (-1, -1), 8),
+        ('ALIGN', (0, 1), (0, -1), 'CENTER'),  # Numeri centrati
+        ('ALIGN', (1, 1), (2, -1), 'RIGHT'),   # Dimensioni allineate a destra
+        ('ALIGN', (5, 1), (-1, -1), 'RIGHT'),  # Valori numerici allineati a destra
     ])
     table.setStyle(style)
     story.append(table)
@@ -50,7 +59,7 @@ def export_to_pdf(quote_items, totals, filename):
     story.append(Paragraph(f"<b>Totale Importo (€):</b> {totals['eur']}", styles['Normal']))
 
     doc.build(story)
-    messagebox.showinfo("Esportazione PDF", f"Preventivo esportato con successo in {filename}", parent=None) # Or pass parent if available
+    messagebox.showinfo("Esportazione PDF", f"Preventivo esportato con successo in {filename}", parent=None)
 
 def save_quote_to_json(quote_items, totals, filename):
     """Salva il preventivo corrente in un file JSON."""

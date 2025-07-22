@@ -7,8 +7,9 @@ class LinearQuoteDialog(tk.Toplevel):
         super().__init__(parent)
         self.parent = parent
         self.title("Aggiungi Elemento Lineare al Preventivo")
-        self.geometry("600x400")
-        self.resizable(False, False)
+        self.geometry("700x550")
+        self.resizable(True, True)
+        self.minsize(650, 500)
         
         # Rendi la finestra modale
         self.transient(parent)
@@ -88,7 +89,7 @@ class LinearQuoteDialog(tk.Toplevel):
         
         # Treeview per mostrare gli elementi disponibili
         columns = ("tipo", "materiale", "prezzo")
-        self.tree = ttk.Treeview(list_frame, columns=columns, show="headings", height=8)
+        self.tree = ttk.Treeview(list_frame, columns=columns, show="headings", height=6)
         
         # Definisci le intestazioni
         self.tree.heading("tipo", text="Tipo Elemento")
@@ -110,13 +111,36 @@ class LinearQuoteDialog(tk.Toplevel):
         
         # Bind per selezione dalla lista
         self.tree.bind("<Double-1>", self.on_tree_double_click)
+        self.tree.bind("<<TreeviewSelect>>", self.on_tree_select)
         
-        # Frame per i pulsanti
+        # Frame per i pulsanti con padding maggiore
         buttons_frame = ttk.Frame(main_frame)
-        buttons_frame.pack(fill="x")
+        buttons_frame.pack(fill="x", pady=(10, 0))
         
-        ttk.Button(buttons_frame, text="Annulla", command=self.cancel).pack(side="right", padx=(5, 0))
-        ttk.Button(buttons_frame, text="Aggiungi al Preventivo", command=self.add_to_quote).pack(side="right")
+        # Aggiungi i bottoni con stile migliorato
+        cancel_btn = ttk.Button(buttons_frame, text="Annulla", command=self.cancel)
+        cancel_btn.pack(side="right", padx=(10, 0))
+        
+        add_btn = ttk.Button(buttons_frame, text="Aggiungi al Preventivo", command=self.add_to_quote)
+        add_btn.pack(side="right", padx=(0, 10))
+        
+        # Rendi il bottone "Aggiungi" più prominente
+        add_btn.configure(style="Accent.TButton" if hasattr(ttk.Style(), "theme_names") else "TButton")
+        
+        # Binding per tasti di scelta rapida
+        self.bind("<Return>", lambda e: self.add_to_quote())
+        self.bind("<Escape>", lambda e: self.cancel())
+        
+        # Focus iniziale sulla quantità
+        self.quantity_entry.focus_set()
+        
+        # Messaggio di aiuto
+        help_frame = ttk.Frame(main_frame)
+        help_frame.pack(fill="x", pady=(5, 0))
+        
+        help_text = "💡 Suggerimento: Seleziona un elemento dalla lista o dal menu a tendina, inserisci quantità e lunghezza. Usa Enter per aggiungere, Esc per annullare."
+        help_label = ttk.Label(help_frame, text=help_text, foreground="gray", font=("TkDefaultFont", 8))
+        help_label.pack(anchor="w")
         
     def load_linear_elements(self):
         """Carica gli elementi lineari disponibili."""
@@ -159,10 +183,30 @@ class LinearQuoteDialog(tk.Toplevel):
             values = self.tree.item(item, "values")
             item_display = f"{values[0]} - {values[1]}"
             if item_display == selected_text:
-                price = self.tree.item(item, "tags")[1]
+                tags = self.tree.item(item, "tags")
+                if len(tags) >= 2:
+                    price = float(tags[1])
+                    self.price_var.set(f"{price:.2f}")
+                    self.calculate_total()
+                break
+                
+    def on_tree_select(self, event):
+        """Gestisce la selezione di un elemento dalla treeview."""
+        selected = self.tree.selection()
+        if selected:
+            item = selected[0]
+            values = self.tree.item(item, "values")
+            tags = self.tree.item(item, "tags")
+            
+            # Aggiorna il combobox
+            display_name = f"{values[0]} - {values[1]}"
+            self.element_var.set(display_name)
+            
+            # Aggiorna il prezzo
+            if len(tags) >= 2:
+                price = float(tags[1])
                 self.price_var.set(f"{price:.2f}")
                 self.calculate_total()
-                break
                 
     def on_tree_double_click(self, event):
         """Gestisce il doppio click sulla treeview per selezionare un elemento."""
@@ -183,8 +227,16 @@ class LinearQuoteDialog(tk.Toplevel):
             
             total = quantity * length * price
             self.total_cost_var.set(f"{total:.2f}")
+            
+            # Cambia il colore del totale se è valido
+            if total > 0:
+                self.total_cost_label.configure(foreground="green")
+            else:
+                self.total_cost_label.configure(foreground="black")
+                
         except ValueError:
             self.total_cost_var.set("0.00")
+            self.total_cost_label.configure(foreground="red")
             
     def add_to_quote(self):
         """Aggiunge l'elemento lineare al preventivo."""

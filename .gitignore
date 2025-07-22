@@ -27,3 +27,15 @@ backup_*/
 # Database backups
 *.db.bak
 *.sqlite.bak
+
+# Distribution packages
+Misure-mq_v*.zip
+github_release_assets/
+
+# Build artifacts
+app_icon.svg
+app_icon.ico
+
+# Temporary files
+*.tmp
+*.temp
